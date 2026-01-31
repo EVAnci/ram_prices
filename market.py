@@ -3,6 +3,9 @@ from statistics import median, stdev
 from json import dumps, loads
 from datetime import date
 
+LOG_LEVEL = 0 # Change to 1 to show more than minimum log.
+
+full_path = '/full/path/to/logfiles/directory'
 url_catalog = 'https://static.compragamer.com/armado_pc_caracteristicas'
 url_products = 'https://static.compragamer.com/productos'
 
@@ -113,16 +116,21 @@ if __name__ == '__main__':
     stats['DDR4 8GB'] = compute_stats(ddr48)
     stats['DDR5 16GB'] = compute_stats(ddr516)
 
-    print(f'[+] RAM prices (based in compragamer.com)\n{dumps(stats,indent=2)}')
+    if LOG_LEVEL==1:
+        print(f'[+] RAM prices (based in compragamer.com)\n{dumps(stats,indent=2)}')
+    else:
+        print(dumps(stats,indent=2))
 
     try:
-        open('prices.log','x')
-        print('[+] Log file created.')
+        open(full_path+'prices.log','x')
+        if LOG_LEVEL==1:
+            print('[+] Log file created.')
     except:
-        print('[+] Log file already exists.')
+        if LOG_LEVEL==1:
+            print('[+] Log file already exists.')
 
     today_was_analized = False
-    with open('prices.log','r') as p:
+    with open(full_path+'prices.log','r') as p:
         try:
             price_log = loads(p.read())
             if stats.get('timestamp') != price_log[-1].get('timestamp'):
@@ -134,10 +142,14 @@ if __name__ == '__main__':
             price_log.append(stats)
 
     if not today_was_analized:
-        with open('prices.log','w') as p:
+        with open(full_path+'prices.log','w') as p:
             p.write(dumps(price_log,indent=2))
-        print('[+] Written on log successfuly.')
+        
+        if LOG_LEVEL==1:
+            print('[+] Written on log successfuly.')
     else:
-        print(f'[+] The prices of today: {stats.get("timestamp")} are already written.')
+        if LOG_LEVEL==1:
+            print(f'[+] The prices of today: {stats.get("timestamp")} are already written.')
 
-    print('[+] All done, Good Bye!')
+    if LOG_LEVEL==1:
+        print('[+] All done, Good Bye!')

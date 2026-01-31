@@ -23,7 +23,7 @@ def plot_prices(data):
     # Extraer fechas y convertirlas a objetos datetime para que el eje X sea temporal
     dates = [datetime.strptime(entry['timestamp'], '%Y-%m-%d') for entry in data]
     
-    fig, ax = plt.subplots(figsize=(12, 7))
+    fig, ax = plt.subplots(figsize=(21, 7))
 
     for cat in categories:
         # Extraer métricas para esta categoría
@@ -31,26 +31,26 @@ def plot_prices(data):
         stds = [entry[cat]['std'] for entry in data]
         mins = [entry[cat]['min'] for entry in data]
         maxs = [entry[cat]['max'] for entry in data]
-        
+       
         c = colors[cat]
         
         # 1. Bigotes (Rango total Min-Max) - Línea vertical fina
-        ax.vlines(dates, mins, maxs, color=c, linestyle='-', alpha=0.3, linewidth=1)
+        ax.vlines(dates, mins, maxs, color=c, linestyle='-', alpha=0.6, linewidth=2)
         
         # 2. Caja (Desviación Estándar) - Barra centrada en la mediana
         # Representamos el área de mayor densidad de precios (Promedio +/- Std)
-        bottoms = [m - s for m, s in zip(meds, stds)]
-        heights = [2 * s for s in stds] # La caja mide 2 veces la desviación (una hacia arriba, otra abajo)
+        bottoms = [m - s/2 for m, s in zip(meds, stds)]
+        heights = [ s for s in stds] # La caja mide 2 veces la desviación (una hacia arriba, otra abajo)
         
-        ax.bar(dates, heights, bottom=bottoms, color=c, alpha=0.6, width=0.4, label=f'{cat} (Mediana ± SD)')
+        ax.bar(dates, heights, bottom=bottoms, color=c, alpha=0.3, width=0.1, label=f'{cat}')
         
         # 3. Línea de tendencia (Mediana)
         ax.plot(dates, meds, color=c, marker='o', markersize=4, linestyle='--', linewidth=1, alpha=0.8)
 
     # Configuración estética del gráfico
-    ax.set_title('Historial de Precios de Memorias RAM (Basado en Mediana y Desviación)', fontsize=14, pad=20)
-    ax.set_ylabel('Precio en Pesos ($)', fontsize=12)
-    ax.set_xlabel('Fecha de Consulta', fontsize=12)
+    ax.set_title('Historial de Precios de Memorias RAM (Basado en Mediana y Desviación)', fontsize=12, pad=10)
+    ax.set_ylabel('Precio en Pesos ($)', fontsize=10)
+    ax.set_xlabel('Fecha de Consulta', fontsize=10)
     ax.grid(True, linestyle=':', alpha=0.6)
     ax.legend()
     

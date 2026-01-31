@@ -1,22 +1,21 @@
-#!/bin/bash
+#!/bin/sh
 
-# Ruta absoluta a tus archivos
-SCRIPT_PATH="/ruta/a/tu/market.py"
-LOG_FILE="/ruta/a/tu/prices.log"
-EMAIL="tu_destino@gmail.com"
+MAIN_PATH="/full/path/to/ram_prices/"
+LOG_DIR="/path/to/log/directory/"
+LOG_FILE="prices.log"
+EMAIL="mail@example"
 
-# Ejecutar el script y capturar la salida (stdout y stderr)
-OUTPUT=$(python3 "$SCRIPT_PATH" 2>&1)
+OUTPUT=$(python3 "$MAIN_PATH/market.py" 2>&1)
 STATUS=$?
 
+SUBJECT="RAM prices report - $(date +'%Y-%m-%d')"
 if [ $STATUS -eq 0 ]; then
-    # Preparar el cuerpo del mensaje
-    SUBJECT="Reporte de Precios RAM - $(date +'%Y-%m-%d')"
-    BODY="La tarea se ejecutó correctamente.\n\nSalida del script:\n\n$OUTPUT"
-    
-    # Enviar correo
+    python "$MAIN_PATH/json2htmlTable.py" "$OUTPUT" "$LOG_DIR/table.html"
+    BODY="$(cat $LOG_DIR/table.html)"
+
     echo -e "Subject: $SUBJECT\n\n$BODY" | msmtp -a gmail "$EMAIL"
-    echo "[+] Notificación enviada correctamente."
+    echo "[+] Notification sent successfuly."
 else
-    echo "[-] El script falló con estado $STATUS. No se envió correo."
+    BODY="[-] The script ended with error, status: $STATUS."
+    echo -e "Subject: $SUBJECT\n\n$BODY" | msmtp -a gmail "$EMAIL"
 fi
