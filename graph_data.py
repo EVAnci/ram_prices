@@ -23,7 +23,7 @@ def plot_prices(data):
     # Extraer fechas y convertirlas a objetos datetime para que el eje X sea temporal
     dates = [datetime.strptime(entry['timestamp'], '%Y-%m-%d') for entry in data]
     
-    fig, ax = plt.subplots(figsize=(21, 7))
+    fig, ax = plt.subplots(figsize=(24, 13))
 
     for cat in categories:
         # Extraer métricas para esta categoría
@@ -52,7 +52,7 @@ def plot_prices(data):
     ax.set_ylabel('Precio en Pesos ($)', fontsize=10)
     ax.set_xlabel('Fecha de Consulta', fontsize=10)
     ax.grid(True, linestyle=':', alpha=0.6)
-    ax.legend()
+    ax.legend(loc='lower left')
     
     # Formatear el eje X para que no se amontonen las fechas
     plt.xticks(rotation=45)
