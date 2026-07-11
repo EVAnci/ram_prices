@@ -1,6 +1,7 @@
 # PC Scraper
 
->[!NOTE] Este repositorio es de uso personal. El código está realizado y pensado para correr en una computadora portátil con procesador Intel Atom N2600, 4 GB de RAM y conexión WiFi. El sistema operativo utilizado es Arch Linux sin entorno de escritorio (headless) con los paquetes mínimos para tener una distribución funcional.
+> [!NOTE] 
+> Este repositorio es de uso personal. El código está realizado y pensado para correr en una computadora portátil con procesador Intel Atom N2600, 4 GB de RAM y conexión WiFi. El sistema operativo utilizado es Arch Linux sin entorno de escritorio (headless) con los paquetes mínimos para tener una distribución funcional.
 
 Este repositorio contiene dos Scrapers Web que funcionan de manera independiente:
 - ML web scraper 
@@ -8,7 +9,8 @@ Este repositorio contiene dos Scrapers Web que funcionan de manera independiente
 
 Ambos son utilizados para scrapear el precio de componentes de PC, de forma que pueda tomar decisiones de compra inteligentes, analizando precios y usando métricas para detectar descuentos o precios atípicamente bajos.
 
->[!IMPORTANT] Ambos scripts de scraping deben utilizarse respetando los términos y condiciones de los sitios web implicados. Limite su cantidad de consultas y utilícelo inteligentemente; el autor no se hará responsable de cuentas bloqueadas, IPs baneadas o problemas asociados al mal uso de los scripts.
+> [!IMPORTANT] 
+> Ambos scripts de scraping deben utilizarse respetando los términos y condiciones de los sitios web implicados. Limite su cantidad de consultas y utilícelo inteligentemente; el autor no se hará responsable de cuentas bloqueadas, IPs baneadas o problemas asociados al mal uso de los scripts.
 
 ## Funcionamiento 
 
@@ -37,7 +39,8 @@ El funcionamiento general es muy similar al visto en `cg_scraper`. Se tiene un a
 
 De la misma manera que en `cg_scraper`, el script de Bash `run_ml_scraper.sh` realiza las mismas tareas pero enfocado en el scraping de otro tipo de componentes. El hecho de que sean dos scripts separados es porque tal vez desee ejecutar más veces uno que otro durante el día. Por ejemplo, podría correr 3 veces `run_cg_scraper.sh` y una sola vez `run_ml_scraper.sh`. De forma análoga, también `ml_mail_report.sh` prepara los datos para enviar por correo en forma de tabla.
 
->[!IMPORTANT] Para que los scripts de bash funcionen correctamente debe crear una regla en /etc/sudoers.d/regla para poder ejecutar los comandos necesarios como sudo sin proporcionar contraseña. Puede seguir el ejemplo siguiente:
+> [!IMPORTANT]
+> Para que los scripts de bash funcionen correctamente debe crear una regla en /etc/sudoers.d/regla para poder ejecutar los comandos necesarios como sudo sin proporcionar contraseña. Puede seguir el ejemplo siguiente:
 ```sh 
 username ALL=(ALL) NOPASSWD: /usr/bin/ip link set wlp2s0 down, /usr/bin/ip link set wlp2s0 up
 ```

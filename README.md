@@ -1,6 +1,7 @@
 # PC Scraper
 
->[!NOTE] This repository is for personal use. The code is designed and intended to run on a laptop with an Intel Atom N2600 processor, 4 GB of RAM, and a WiFi connection. The operating system used is Arch Linux without a desktop environment (headless) with the minimum packages required to have a functional distribution.
+> [!NOTE] 
+> This repository is for personal use. The code is designed and intended to run on a laptop with an Intel Atom N2600 processor, 4 GB of RAM, and a WiFi connection. The operating system used is Arch Linux without a desktop environment (headless) with the minimum packages required to have a functional distribution.
 
 This repository contains two web scrapers that operate independently:
 - ML web scraper 
@@ -8,7 +9,8 @@ This repository contains two web scrapers that operate independently:
 
 Both are used to scrape PC component prices, allowing me to make smart purchasing decisions by analyzing prices and using metrics to detect discounts or atypically low prices.
 
->[!IMPORTANT] Both scraping scripts must be used in compliance with the terms and conditions of the websites involved. Limit your query volume and use them wisely; the author is not responsible for blocked accounts, banned IPs, or any issues arising from the misuse of these scripts.
+> [!IMPORTANT] 
+> Both scraping scripts must be used in compliance with the terms and conditions of the websites involved. Limit your query volume and use them wisely; the author is not responsible for blocked accounts, banned IPs, or any issues arising from the misuse of these scripts.
 
 Read the instructions in Spanish [here](README_ES.md).
 
@@ -39,7 +41,8 @@ The general operation is very similar to `cg_scraper`. There is an `ml_scraper.p
 
 Just like in `cg_scraper`, the Bash script `run_ml_scraper.sh` performs the same tasks but focuses on scraping a different type of components. They are separate scripts because you might want to run one more frequently than the other throughout the day. For instance, you could run `run_cg_scraper.sh` three times a day and `run_ml_scraper.sh` only once. Similarly, `ml_mail_report.sh` prepares the data to be sent via email as a table.
 
->[!IMPORTANT] For the bash scripts to work properly, create a rule in /etc/sudoers.d/rulename to allow your user execute the necesary commands without password. You can follow the example below:
+> [!IMPORTANT] 
+> For the bash scripts to work properly, create a rule in /etc/sudoers.d/rulename to allow your user execute the necesary commands without password. You can follow the example below:
 ```sh 
 username ALL=(ALL) NOPASSWD: /usr/bin/ip link set wlp2s0 down, /usr/bin/ip link set wlp2s0 up
 ```
