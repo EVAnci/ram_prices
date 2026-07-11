@@ -153,8 +153,8 @@ if __name__ == '__main__':
         with open('/home/valen/Files/prices.log','w') as p:
             p.write(dumps(price_log,indent=2))
 
-        with open('/home/valen/Files/raw.log','r') as ra:
-            raw.append(asdasd.read())
+        with open('/home/valen/Files/raw.log','r') as r:
+            raw.append(loads(r.read()))
         with open('/home/valen/Files/raw.log','w') as r:
             r.write(dumps(raw,indent=2))
         

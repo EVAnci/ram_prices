@@ -1,0 +1,11 @@
+[Unit]
+Description=Ejecutar el scraper de notebooks una vez al día
+
+[Timer]
+# Disparo diario a las 18:00. Ajustá el horario a gusto.
+OnCalendar=*-*-* 18:00:00
+# Si la laptop estaba apagada/dormida a esa hora, corre apenas se prende.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,21 @@
+[Unit]
+Description=Scraper de precios de notebooks (MercadoLibre)
+After=network-online.target
+Wants=network-online.target
+
+# Ventana de reintentos: hasta 20 intentos por día. Si en 20 intentos
+# (cada 15 min = 5hs de cobertura) no hay éxito, systemd deja de reintentar
+# hasta el próximo disparo del timer.
+StartLimitIntervalSec=1d
+StartLimitBurst=20
+
+[Service]
+Type=oneshot
+User=valen
+EnvironmentFile=/home/valen/ml_notebooks/env.conf
+ExecStart=/bin/sh /home/valen/ml_notebooks/run_ml_scraper.sh
+
+# Si el script sale con código != 0 (sin red, error del scraper, etc.),
+# systemd lo vuelve a intentar solo, sin que nadie tenga que correr nada.
+Restart=on-failure
+RestartSec=15min

@@ -1,0 +1,8 @@
+[Unit]
+Description=Script Scrapping RAM
+After=network-online.target
+
+[Service]
+Type=oneshot
+User=valen
+ExecStart=/bin/sh /home/valen/ram_prices/cronwork.sh

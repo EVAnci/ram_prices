@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""
-Script para convertir datos JSON de precios de memoria RAM a tabla HTML
-Uso: python json2html.py input.json
-     python json2html.py input.json output.html
-"""
+
+# Script para convertir datos JSON de precios de memoria RAM a tabla HTML
+# Uso: python json2html.py input.json
+#      python json2html.py input.json output.html
 
 import json
 import sys
