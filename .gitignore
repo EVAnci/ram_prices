@@ -1,3 +1,4 @@
-prices.log
 .venv
-reporte_precios.png
+*.png
+*.log
+env.conf

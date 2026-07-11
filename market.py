@@ -5,7 +5,6 @@ from datetime import date
 
 LOG_LEVEL = 0 # Change to 1 to show more than minimum log.
 
-full_path = '/full/path/to/logfiles/directory'
 url_catalog = 'https://static.compragamer.com/armado_pc_caracteristicas'
 url_products = 'https://static.compragamer.com/productos'
 
@@ -85,6 +84,7 @@ def get_price():
                 # print(dumps(product,indent=2))
                 mem['precio'] = product.get('precioEspecial')
                 mem['nombre'] = product.get('nombre')
+                mem['stock'] = product.get('stock')
                 tipo = mem.get('tipo')
                 capacidad = mem.get('capacidad')
                 if tipo == 'DDR4':
@@ -100,10 +100,12 @@ def get_price():
 
 def compute_stats(mems):
     prices = []
+    stock = 0
     for mem in mems:
         prices.append(mem.get('precio'))
+        stock += mem.get('stock')
 
-    return {'max':max(prices), 'min':min(prices), 'med':median(prices), 'std':round(stdev(prices),2)}
+    return {'max':max(prices), 'min':min(prices), 'med':median(prices), 'std':round(stdev(prices),2), 'cant_marcas':len(mems), 'stock':stock}
     
 
 if __name__ == '__main__':
@@ -115,6 +117,12 @@ if __name__ == '__main__':
     stats['DDR4 16GB'] = compute_stats(ddr416)
     stats['DDR4 8GB'] = compute_stats(ddr48)
     stats['DDR5 16GB'] = compute_stats(ddr516)
+    
+    raw=[{
+            'DDR4 16GB':ddr416,
+            'DDR4 8GB':ddr48,
+            'DDR5 16GB':ddr516
+        }]
 
     if LOG_LEVEL==1:
         print(f'[+] RAM prices (based in compragamer.com)\n{dumps(stats,indent=2)}')
@@ -122,7 +130,7 @@ if __name__ == '__main__':
         print(dumps(stats,indent=2))
 
     try:
-        open(full_path+'prices.log','x')
+        open('/home/valen/Files/prices.log','x')
         if LOG_LEVEL==1:
             print('[+] Log file created.')
     except:
@@ -130,7 +138,7 @@ if __name__ == '__main__':
             print('[+] Log file already exists.')
 
     today_was_analized = False
-    with open(full_path+'prices.log','r') as p:
+    with open('/home/valen/Files/prices.log','r') as p:
         try:
             price_log = loads(p.read())
             if stats.get('timestamp') != price_log[-1].get('timestamp'):
@@ -142,8 +150,13 @@ if __name__ == '__main__':
             price_log.append(stats)
 
     if not today_was_analized:
-        with open(full_path+'prices.log','w') as p:
+        with open('/home/valen/Files/prices.log','w') as p:
             p.write(dumps(price_log,indent=2))
+
+        with open('/home/valen/Files/raw.log','r') as ra:
+            raw.append(asdasd.read())
+        with open('/home/valen/Files/raw.log','w') as r:
+            r.write(dumps(raw,indent=2))
         
         if LOG_LEVEL==1:
             print('[+] Written on log successfuly.')
