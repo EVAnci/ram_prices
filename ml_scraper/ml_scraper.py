@@ -23,7 +23,7 @@ from typing import Optional
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 from playwright_stealth import Stealth
 
-import db
+from db import db
 
 # ----------------------------------------------------------------------------
 # CONFIG

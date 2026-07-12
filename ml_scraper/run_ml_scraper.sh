@@ -17,7 +17,7 @@
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ENV_CONF_PATH="${ENV_CONF_PATH:-$SCRIPT_DIR/env.conf}"
+ENV_CONF_PATH="${ENV_CONF_PATH:-$SCRIPT_DIR/../env.conf}"
 
 # Si systemd ya nos dio las variables (via EnvironmentFile=), esto no pisa
 # nada; si corremos a mano, las carga.

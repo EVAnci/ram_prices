@@ -8,7 +8,7 @@ de un JSON acumulativo.
 from statistics import median, stdev
 import requests
 
-import db
+from db import db
 
 LOG_LEVEL = 0  # 1 = más verboso
 

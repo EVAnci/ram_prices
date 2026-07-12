@@ -3,7 +3,7 @@
 set -eu
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-ENV_CONF_PATH="${ENV_CONF_PATH:-$SCRIPT_DIR/env.conf}"
+ENV_CONF_PATH="${ENV_CONF_PATH:-$SCRIPT_DIR/../env.conf}"
 
 if [ -f "$ENV_CONF_PATH" ]; then
     set -a
