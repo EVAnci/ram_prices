@@ -42,13 +42,6 @@ install_unit() {
     echo "[copy] $unit_file -> $dst"
 }
 
-create_python_env() {
-    python3 -m venv $SCRIPT_DIR/.venv
-    source $SCRIPT_DIR/.venv/bin/activate
-    pip install -r $SCRIPT_DIR/requirements.txt
-    $SCRIPT_DIR/.venv/bin/playwright install firefox
-}
-
 echo "== Instalando unidades systemd =="
 for unit in $UNITS; do
     install_unit "$unit"
@@ -81,7 +74,3 @@ echo ""
 echo "Para ver el próximo disparo y logs:"
 echo "  systemctl status ml_scraper.timer"
 echo "  journalctl -u ml_scraper.service -f"
-
-echo "== Creando entorno virtual e instalando dependencias =="
-create_python_env
-echo "Listo."
