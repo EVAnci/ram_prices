@@ -69,7 +69,7 @@ fi
 log "Conectividad OK."
 
 log "Corriendo scraper de RAM..."
-if ! "$MAIN_DIR/venv/bin/python3" "$MAIN_DIR/cg_scraper/cg_scraper.py" >"$LOG_DIR/cg_scraper_run.log" 2>&1; then
+if ! "$MAIN_DIR/.venv/bin/python3" "$MAIN_DIR/cg_scraper/cg_scraper.py" >"$LOG_DIR/cg_scraper_run.log" 2>&1; then
     log "El scraper falló. Ver $LOG_DIR/cg_scraper_run.log"
     send_error_mail \
         "RAM prices - ERROR ($(date +'%Y-%m-%d'))" \
