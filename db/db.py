@@ -82,7 +82,7 @@ def get_cpu_line_id(conn: sqlite3.Connection, marca: str, linea: str) -> Optiona
 # Corridas
 # ----------------------------------------------------------------------------
 
-def start_run(conn: sqlite3.Connection, provider_nombre: str, timestamp: Optional[datetime] = None) -> int:
+def start_run(conn: sqlite3.Connection, provider_nombre: str, timestamp: Optional[datetime] = None) -> int | None:
     provider_id = get_provider_id(conn, provider_nombre)
     ts = (timestamp or datetime.now(timezone.utc)).isoformat()
     cur = conn.execute(
@@ -108,7 +108,7 @@ def save_laptop_listings(
     """
     Guarda una lista de productos de notebooks bajo una misma clasificación
     de CPU/RAM/storage (la clasificación es un parámetro de LA CORRIDA, no
-    se infiere por título individual - ver charla de diseño).
+    se infiere por título individual).
     """
     with get_connection() as conn:
         product_type_id = get_product_type_id(conn, "laptop")
