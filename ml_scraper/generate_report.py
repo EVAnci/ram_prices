@@ -1,24 +1,26 @@
-# Genera un reporte histórico a partir de precios_notebooks.db:
-# - Gráfico de caja y bigotes (boxplot) de precios agrupados por fecha de corrida.
-# - Serie de media +/- desvío estándar a lo largo del tiempo, superpuesta.
-# - Un resumen en consola con la tendencia (¿sube o baja la media reciente?).
+"""
+Genera un reporte histórico a partir de precios_notebooks.db:
+- Gráfico de caja y bigotes (boxplot) de precios agrupados por fecha de corrida.
+- Serie de media +/- desvío estándar a lo largo del tiempo, superpuesta.
+- Un resumen en consola con la tendencia (¿sube o baja la media reciente?).
 
-# Uso:
-#     python generate_report.py
-# Genera: reporte_precios.png
+Uso:
+    python generate_report.py
+Genera: reporte_precios.png
+"""
 
 import matplotlib
 matplotlib.use("Agg")  # sin entorno de escritorio en el server, no hace falta X
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from db import load_history_df
+from db import load_laptop_history_df
 
 OUTPUT_IMG = "reporte_precios.png"
 
 
 def main():
-    df = load_history_df()
+    df = load_laptop_history_df()
 
     if df.empty:
         print("No hay datos en la base todavía. Corré el scraper primero.")
@@ -29,9 +31,9 @@ def main():
     df["fecha"] = df["timestamp"].dt.date
 
     fechas_ordenadas = sorted(df["fecha"].unique())
-    datos_por_fecha = [df.loc[df["fecha"] == f, "price"].values for f in fechas_ordenadas]
+    datos_por_fecha = [df.loc[df["fecha"] == f, "precio"].values for f in fechas_ordenadas]
 
-    resumen = df.groupby("fecha")["price"].agg(["mean", "std", "min", "max", "count"])
+    resumen = df.groupby("fecha")["precio"].agg(["mean", "std", "min", "max", "count"])
     print("=== Resumen por fecha ===")
     print(resumen)
 

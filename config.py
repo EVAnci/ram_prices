@@ -1,20 +1,21 @@
-# Minimal loader for env.conf intended for Python scripts.
+"""
+Loader mínimo de env.conf para los scripts en Python.
 
-# If the process is launched by systemd using "EnvironmentFile=env.conf",
-# the variables are already present in os.environ and this module does 
-# nothing (it does not overwrite existing values). If the script is 
-# run manually from a terminal, this loader parses env.conf and 
-# populates os.environ.
+Si el proceso ya fue lanzado por systemd con "EnvironmentFile=env.conf",
+las variables ya están en os.environ y este módulo no hace nada extra
+(no pisa lo que ya esté seteado). Si corrés el script a mano desde la
+terminal, este loader parsea env.conf y completa os.environ.
 
-# Usage:
-#     from config import get_config
-#     cfg = get_config()
-#     print(cfg["ML_DB_PATH"])
+Uso:
+    from config import get_config
+    cfg = get_config()
+    print(cfg["ML_DB_PATH"])
 
-# Or directly:
-#     import config
-#     config.load()  # populates os.environ
-#     os.environ["ML_DB_PATH"]
+O directamente:
+    import config
+    config.load()  # completa os.environ
+    os.environ["ML_DB_PATH"]
+"""
 
 import os
 from pathlib import Path
@@ -25,10 +26,10 @@ _LINE_RE_COMMENT = "#"
 
 
 def load(env_path: Path | str = DEFAULT_ENV_PATH) -> None:
-    """Parses env.conf and completes os.environ (without overwrite)."""
+    """Parsea env.conf y completa os.environ (sin pisar variables ya seteadas)."""
     env_path = Path(env_path)
     if not env_path.exists():
-        raise FileNotFoundError(f"[config.py] - Config file not found: {env_path}")
+        raise FileNotFoundError(f"No se encontró el archivo de config: {env_path}")
 
     for raw_line in env_path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
@@ -39,16 +40,15 @@ def load(env_path: Path | str = DEFAULT_ENV_PATH) -> None:
         key = key.strip()
         value = value.strip().strip('"').strip("'")
 
-        # Don't overwrite if systemd already set the value.
+        # No pisamos si systemd (u otro entorno) ya nos dio un valor.
         os.environ.setdefault(key, value)
 
 
 def get_config(env_path: Path | str = DEFAULT_ENV_PATH) -> dict:
     load(env_path)
     keys = [
-        "RAM_DIR", "ML_DIR", "LOG_DIR",
-        "ML_DB_PATH", "ML_REPORT_IMG",
-        "RAM_LOG_FILE", "RAM_RAW_LOG_FILE",
+        "MAIN_DIR", "DB_DIR", "FILES_DIR", "LOG_DIR",
+        "SCRAPER_DB_PATH", "ML_REPORT_IMG", "RAM_REPORT_IMG",
         "EMAIL_TO", "MSMTP_ACCOUNT",
         "WIFI_INTERFACE", "PING_TARGET", "PING_MAX_ATTEMPTS",
         "PING_RESTART_DOWN_SECONDS", "PING_RESTART_UP_SECONDS",

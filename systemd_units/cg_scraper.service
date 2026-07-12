@@ -1,8 +1,16 @@
 [Unit]
-Description=Script Scrapping RAM
+Description=Scraper de precios de compragamer
 After=network-online.target
+Wants=network-online.target
+
+StartLimitIntervalSec=1d
+StartLimitBurst=20
 
 [Service]
 Type=oneshot
 User=valen
-ExecStart=/bin/sh /home/valen/ram_prices/cronwork.sh
+EnvironmentFile=/home/valen/scraper/env.conf
+ExecStart=/bin/sh /home/valen/scraper/cg_scraper/run_cg_scraper.sh
+
+Restart=on-failure
+RestartSec=15min

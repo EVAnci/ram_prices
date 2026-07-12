@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
-# Arma el HTML del reporte de precios de notebooks (última corrida en SQLite)
-# para mandarlo por mail. Reemplaza el rol de json2html.py pero para los datos
-# de MercadoLibre (que tienen forma distinta a los de RAM: no son categorías
-# fijas, son N productos individuales + estadísticas + posibles gangas).
+"""
+Arma el HTML del reporte de precios de notebooks (última corrida en SQLite)
+para mandarlo por mail. Reemplaza el rol de json2html.py pero para los datos
+de MercadoLibre (que tienen forma distinta a los de RAM: no son categorías
+fijas, son N productos individuales + estadísticas + posibles gangas).
 
-# Uso:
-#     python3 ml_mail_report.py > /ruta/al/reporte.html
-#     python3 ml_mail_report.py output.html
+Uso:
+    python3 ml_mail_report.py > /ruta/al/reporte.html
+    python3 ml_mail_report.py output.html
+"""
 
 import sys
 import statistics
 
-from db import load_history_df
+from db import load_laptop_history_df
 
 
 def format_currency(value) -> str:
@@ -24,7 +26,7 @@ def compute_last_run_stats(df):
 
     last_ts = df["timestamp"].max()
     last_run = df[df["timestamp"] == last_ts]
-    prices = sorted(last_run["price"].tolist())
+    prices = sorted(last_run["precio"].tolist())
     n = len(prices)
 
     stats = {
@@ -43,8 +45,8 @@ def compute_last_run_stats(df):
         iqr = q3 - q1
         lower_bound = q1 - 1.5 * iqr
         gangas = (
-            last_run[last_run["price"] < lower_bound]
-            .sort_values("price")
+            last_run[last_run["precio"] < lower_bound]
+            .sort_values("precio")
             .to_dict("records")
         )
 
@@ -69,8 +71,8 @@ def build_html(timestamp, stats, gangas) -> str:
     gangas_html = ""
     if gangas:
         rows = "".join(
-            f"<tr><td>{format_currency(g['price'])}</td>"
-            f"<td style='text-align:left'>{g['title']}</td></tr>"
+            f"<tr><td>{format_currency(g['precio'])}</td>"
+            f"<td style='text-align:left'>{g['titulo']}</td></tr>"
             for g in gangas
         )
         gangas_html = f"""
@@ -115,7 +117,7 @@ def wrap_email(body_html: str, title: str = "Reporte de Precios - Notebooks Ryze
 
 
 def main():
-    df = load_history_df()
+    df = load_laptop_history_df()
     timestamp, stats, gangas = compute_last_run_stats(df)
     body = build_html(timestamp, stats, gangas)
     full_html = wrap_email(body)

@@ -1,35 +1,29 @@
-# Scraper de precios de notebooks (Ryzen 5, 16GB RAM, ~400GB+ SSD) en Mercado Libre.
-# Versión Playwright (navegador real headless) - pensada para correr en hardware
-# modesto (ej. Atom N2500, sin entorno de escritorio) 1-2 veces al día.
+"""
+Scraper de precios de notebooks en Mercado Libre. Versión Playwright,
+guarda en el esquema normalizado (db.py / schema.sql).
 
-# Por qué Playwright y no requests/BeautifulSoup:
-# Mercado Libre tiene un sistema anti-bot ("suspicious-traffic-frontend") que
-# detecta clientes no-browser por fingerprint TLS y desafíos JS. Un navegador
-# real headless resuelve ambos problemas de forma nativa.
+Cambio de diseño clave respecto a versiones anteriores: la clasificación
+de CPU/RAM/storage YA NO se infiere por título (regex por producto).
+Se confía en el filtro de búsqueda de ML: cada URL en SCRAPE_TARGETS
+declara explícitamente qué CPU/RAM/storage garantiza ese filtro, y esa
+clasificación se aplica a TODOS los resultados de esa corrida.
 
-# Optimizaciones para hardware débil:
-# - Se bloquean imágenes/fuentes/CSS/media (no se necesitan para el texto).
-# - Un solo browser, un solo context, sin paralelismo.
-# - Se usa Firefox (más liviano que Chromium en general).
+Instalación:
+    pip install -r requirements.txt
+    playwright install firefox
+"""
 
-# Instalación:
-#     pip install playwright
-#     pip install playwright-stealth
-#     playwright install firefox
-
-import json
 import re
 import time
+import random
 import statistics
 from dataclasses import dataclass, asdict
 from typing import Optional
-import random
 
-from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeoutError
 from playwright_stealth import Stealth
 
-from db import init_db, save_run
+import db
 
 # ----------------------------------------------------------------------------
 # CONFIG
@@ -41,32 +35,41 @@ from db import init_db, save_run
 #                                                                       Desde_[offset]_ (ausente si offset==0)
 #                                                                       [filtro-de-precio]_
 #                                                                       NoIndex_True_
-#                                                                       PROCESSOR*LINE_[2244215=AMD Ryzen 5]_
-#                                                                       RAM*MEMORY*MODULE*TOTAL*CAPACITY_[16GB-*]_
+#                                                                       PROCESSOR*LINE_[codigo]_
+#                                                                       RAM*MEMORY*MODULE*TOTAL*CAPACITY_[NGB-*]_
 #                                                                       SHIPPING*ORIGIN_[10215068]_
-#                                                                       SSD*DATA*STORAGE*CAPACITY_[400GB-*]
+#                                                                       SSD*DATA*STORAGE*CAPACITY_[NGB-*]
 BASE_URL = "https://listado.mercadolibre.com.ar/computacion/notebooks-accesorios/"
 SEARCH_QUERY = "notebook"
-FILTERS = (
-    "PriceRange_400000ARS-1500000ARS_NoIndex_True_"
-    "PROCESSOR*LINE_2244215_"
-    "RAM*MEMORY*MODULE*TOTAL*CAPACITY_16GB-*_"
-    "SHIPPING*ORIGIN_10215068_"
-    "SSD*DATA*STORAGE*CAPACITY_400GB-*"
-)
+
+# Cada target = una corrida de scraping con su propia clasificación.
+# storage_gb queda en None a propósito: el filtro de ML garantiza un PISO
+# (ej. "400GB-*" = 400GB o más), pero no la capacidad exacta de cada aviso,
+# y no la extraemos del título porque no siempre aparece ahí.
+SCRAPE_TARGETS = [
+    {
+        "cpu_marca": "AMD",
+        "cpu_linea": "Ryzen 5",
+        "ram_gb": 16,
+        "storage_gb": None,
+        "storage_tipo": "SSD",
+        "filters": (
+            "PriceRange_400000ARS-1500000ARS_NoIndex_True_"
+            "PROCESSOR*LINE_2244215_"
+            "RAM*MEMORY*MODULE*TOTAL*CAPACITY_16GB-*_"
+            "SHIPPING*ORIGIN_10215068_"
+            "SSD*DATA*STORAGE*CAPACITY_400GB-*"
+        ),
+    },
+    # Agregá más targets acá (ej. Core i5, Ryzen 7) con su propia URL de
+    # filtros armada navegando la web de ML, igual que con el primero.
+]
 
 RESULTS_PER_PAGE = 48
-DELAY_BETWEEN_REQUESTS = 10.0  # segundos entre páginas
-PAGE_TIMEOUT_MS = 300_000 # Tiempo generoso para el atom
+DELAY_BETWEEN_REQUESTS = 10.0
+PAGE_TIMEOUT_MS = 300_000  # tiempo generoso para el Atom
 MAX_RETRIES_ON_BLOCK = 2
 RETRY_BACKOFF_SECONDS = 20.0
-
-# Script para reducir señales obvias de automatización (navigator.webdriver, etc.)
-STEALTH_INIT_SCRIPT = """
-Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
-Object.defineProperty(navigator, 'languages', { get: () => ['es-AR', 'es'] });
-Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3] });
-"""
 
 RESOURCES_TO_BLOCK = {"image", "font", "media", "stylesheet"}
 
@@ -83,23 +86,17 @@ class Product:
 # CONSTRUCCIÓN DE URL
 # ----------------------------------------------------------------------------
 
+def build_page_url(filters: str, offset: int) -> str:
+    if offset == 0:
+        return f"{BASE_URL}{SEARCH_QUERY}_{filters}"
+    return f"{BASE_URL}{SEARCH_QUERY}_Desde_{offset + 1}_{filters}"
+
 
 def human_scroll(page):
     """Simula un usuario scrolleando hacia abajo leyendo los resultados."""
-    scroll_steps = random.randint(3, 6)
-    
-    for _ in range(scroll_steps):
-        # Scrollea hacia abajo entre 300 y 700 píxeles por vez
-        pixels = random.randint(300, 700)
-        page.mouse.wheel(delta_x=0, delta_y=pixels)
-        
-        # Pausa aleatoria entre cada movimiento del dedo/mouse
+    for _ in range(random.randint(3, 6)):
+        page.mouse.wheel(delta_x=0, delta_y=random.randint(300, 700))
         time.sleep(random.uniform(1, 2.5))
-
-def build_page_url(offset: int) -> str:
-    if offset == 0:
-        return f"{BASE_URL}{SEARCH_QUERY}_{FILTERS}"
-    return f"{BASE_URL}{SEARCH_QUERY}_Desde_{offset + 1}_{FILTERS}"
 
 
 # ----------------------------------------------------------------------------
@@ -111,18 +108,15 @@ def is_blocked(html: str) -> bool:
     return marker in html or "ingresa a tu cuenta" in html.lower()
 
 
-def fetch(page, url: str) -> Optional[list[Product]]:
+def fetch(page, url: str):
     for attempt in range(1, MAX_RETRIES_ON_BLOCK + 2):
         try:
-            # Quitamos el wait_until="domcontentloaded", dejamos que Playwright use 
-            # su comportamiento por defecto (esperar al evento 'load')
             page.goto(url, timeout=PAGE_TIMEOUT_MS)
-            
-            # ¡LA CLAVE!: Forzamos a Playwright a esperar a que el desafío JS 
-            # termine y renderice las tarjetas de producto.
-            page.wait_for_selector("li.ui-search-layout__item, div.ui-search-result__wrapper", timeout=PAGE_TIMEOUT_MS)
+            page.wait_for_selector(
+                "li.ui-search-layout__item, div.ui-search-result__wrapper",
+                timeout=PAGE_TIMEOUT_MS,
+            )
             human_scroll(page)
-            
         except PWTimeoutError:
             print(f"  [WARN] timeout cargando {url} o resolviendo el desafío JS.")
             return None
@@ -144,16 +138,22 @@ def fetch(page, url: str) -> Optional[list[Product]]:
 
     return None
 
-def get_max_pages(page):
-    results = page.query_selector("span.ui-search-search-result__quantity-results").inner_text()
-    results_quantity = int(results.split(' ', 1)[0])
-    pages = (results_quantity + RESULTS_PER_PAGE-1) // RESULTS_PER_PAGE - 1
-    return pages
+
+def get_max_pages(page) -> int:
+    el = page.query_selector("span.ui-search-search-result__quantity-results")
+    if el is None:
+        return 0
+    results_quantity = int(el.inner_text().split(" ", 1)[0])
+    return (results_quantity + RESULTS_PER_PAGE - 1) // RESULTS_PER_PAGE - 1
+
+
+def parse_price(text: str) -> Optional[float]:
+    cleaned = re.sub(r"[^\d]", "", text)
+    return float(cleaned) if cleaned else None
+
 
 def parse_listing(page) -> list[Product]:
     products: list[Product] = []
-
-    # Selector principal + fallbacks, evaluados en el propio DOM del browser.
     cards = page.query_selector_all("li.ui-search-layout__item")
 
     for card in cards:
@@ -162,9 +162,10 @@ def parse_listing(page) -> list[Product]:
             or card.query_selector("a.poly-component__title")
             or card.query_selector("[class*='title']")
         )
-        price_el = card.query_selector("div.poly-price__current span.andes-money-amount__fraction")
-        
-
+        price_el = (
+            card.query_selector("span.andes-money-amount__fraction")
+            or card.query_selector("[class*='price'] [class*='fraction']")
+        )
         link_el = card.query_selector("a[href]")
 
         if not title_el or not price_el:
@@ -187,30 +188,56 @@ def parse_listing(page) -> list[Product]:
     return products
 
 
-def parse_price(text: str) -> Optional[float]:
-    cleaned = re.sub(r"[^\d]", "", text)
-    if not cleaned:
-        return None
-    return float(cleaned)
-
-
-def scrape_all() -> list[Product]:
+def scrape_target(context, target: dict) -> list[Product]:
     all_products: list[Product] = []
+    page = context.new_page()
 
-    # Envolvemos sync_playwright() con Stealth().use_sync()
+    print(f"\n=== Scrapeando {target['cpu_marca']} {target['cpu_linea']} ===")
+    page_num = 0
+    max_pages = 0
+    while page_num <= max_pages:
+        offset = page_num * RESULTS_PER_PAGE
+        url = build_page_url(target["filters"], offset)
+        print(f"  Página {page_num + 1}: {url}")
+
+        page = fetch(page, url)
+        if page is None:
+            print("  Sin más productos o bloqueado, cortando paginación.")
+            break
+
+        if page_num == 0:
+            max_pages = get_max_pages(page)
+
+        page_products = parse_listing(page)
+        if not page_products:
+            print("  Sin más productos, cortando paginación.")
+            break
+
+        print(f"  {len(page_products)} tarjetas.")
+        all_products.extend(page_products)
+
+        time.sleep(DELAY_BETWEEN_REQUESTS + 2.0)
+        page_num += 1
+
+    page.close()
+    return all_products
+
+
+def scrape_all() -> dict:
+    """Devuelve {target_index: [Product, ...]}."""
+    results: dict = {}
+
     with Stealth().use_sync(sync_playwright()) as pw:
-        
         browser = pw.firefox.launch(headless=True)
         context = browser.new_context(
             locale="es-AR",
-            viewport={'width': 1366, 'height': 768},
+            viewport={"width": 1366, "height": 768},
             user_agent=(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:128.0) "
                 "Gecko/20100101 Firefox/128.0"
             ),
         )
-        
-        # Bloqueo de recursos para aliviar el procesador Atom
+
         def route_handler(route):
             if route.request.resource_type in RESOURCES_TO_BLOCK:
                 route.abort()
@@ -219,49 +246,25 @@ def scrape_all() -> list[Product]:
 
         context.route("**/*", route_handler)
 
-        page = context.new_page()
-        
-        # Ya no hace falta llamar a ninguna función stealth aquí abajo. 
-        # La sesión ya está "parcheada" de forma automática.
-
-        # --- CONSTRUCCIÓN DE SESIÓN ---
         print("Generando sesión inicial en la página principal...")
+        page = context.new_page()
         try:
             page.goto("https://www.mercadolibre.com.ar", timeout=PAGE_TIMEOUT_MS, wait_until="domcontentloaded")
             time.sleep(3)
         except PWTimeoutError:
             print("  [WARN] Timeout cargando la home, continuando de todos modos...")
+        page.close()
 
-        # --- INICIO DEL SCRAPING REAL ---
-        min_pages = 1
-        max_pages = min_pages
-        page_num = 0
-        while page_num <= max_pages:
-            offset = page_num * RESULTS_PER_PAGE
-            url = build_page_url(offset)
-            print(f"\nPágina {page_num + 1}: {url}")
-
-            page = fetch(page, url)
-            if page_num == 0: # En la primera iteración, encontramos la cantidad de resultados y calculamos las paginas
-                max_pages = get_max_pages(page)
-            page_products = parse_listing(page)
-            if not page_products:
-                print("  Sin más productos o bloqueado, cortando paginación.")
-                break
-
-            print(f"  {len(page_products)} tarjetas.")
-            all_products.extend(page_products)
-
-            time.sleep(DELAY_BETWEEN_REQUESTS + 2.0)
-            page_num+=1
+        for i, target in enumerate(SCRAPE_TARGETS):
+            results[i] = scrape_target(context, target)
 
         browser.close()
 
-    return all_products
+    return results
 
 
 # ----------------------------------------------------------------------------
-# ESTADÍSTICAS + DETECCIÓN DE GANGAS (outliers bajos)
+# ESTADÍSTICAS (solo para el resumen en consola/log de esta corrida)
 # ----------------------------------------------------------------------------
 
 def compute_stats(products: list[Product]) -> dict:
@@ -270,7 +273,6 @@ def compute_stats(products: list[Product]) -> dict:
 
     prices = sorted(p.price for p in products)
     n = len(prices)
-
     stats = {
         "count": n,
         "mean": round(statistics.mean(prices), 2),
@@ -279,58 +281,41 @@ def compute_stats(products: list[Product]) -> dict:
         "max": prices[-1],
         "median": round(statistics.median(prices), 2),
     }
-
     if n >= 4:
         q1 = statistics.quantiles(prices, n=4)[0]
         q3 = statistics.quantiles(prices, n=4)[2]
         iqr = q3 - q1
-        lower_bound = q1 - 1.5 * iqr
-        stats["q1"] = round(q1, 2)
-        stats["q3"] = round(q3, 2)
-        stats["iqr"] = round(iqr, 2)
-        stats["lower_bound_ganga"] = round(lower_bound, 2)
-
+        stats["lower_bound_ganga"] = round(q1 - 1.5 * iqr, 2)
     return stats
-
-
-def find_gangas(products: list[Product], stats: dict) -> list[dict]:
-    """Productos por debajo del límite inferior del IQR: candidatos a 'ganga'."""
-    if "lower_bound_ganga" not in stats:
-        return []
-    bound = stats["lower_bound_ganga"]
-    return [asdict(p) for p in products if p.price < bound]
 
 
 # ----------------------------------------------------------------------------
 # MAIN
 # ----------------------------------------------------------------------------
 
-
 def main():
-    products = scrape_all()
-    stats = compute_stats(products)
-    gangas = find_gangas(products, stats)
+    db.init_db()
 
-    init_db()
-    save_run(products)
+    all_results = scrape_all()
 
-    results = {
-        "products": [asdict(p) for p in products],
-        "stats": stats,
-        "posibles_gangas": gangas,
-    }
-
-    output_path = "resultados_notebooks_ml.json"
-    with open(output_path, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
+    with db.get_connection() as conn:
+        run_id = db.start_run(conn, "mercadolibre")
 
     print("\n=== RESUMEN ===")
-    print(stats)
-    if gangas:
-        print(f"\n{len(gangas)} posible(s) ganga(s) (precio atípicamente bajo):")
-        for g in gangas:
-            print(f"  ${g['price']:,.0f} - {g['title']}")
-    print(f"\nGuardado en {output_path}")
+    for i, target in enumerate(SCRAPE_TARGETS):
+        products = all_results.get(i, [])
+        stats = compute_stats(products)
+        print(f"{target['cpu_marca']} {target['cpu_linea']}: {stats}")
+
+        db.save_laptop_listings(
+            run_id=run_id,
+            products=products,
+            cpu_marca=target["cpu_marca"],
+            cpu_linea=target["cpu_linea"],
+            ram_gb=target["ram_gb"],
+            storage_gb=target["storage_gb"],
+            storage_tipo=target["storage_tipo"],
+        )
 
 
 if __name__ == "__main__":
