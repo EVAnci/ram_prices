@@ -72,7 +72,8 @@ def build_html(timestamp, stats, gangas) -> str:
     if gangas:
         rows = "".join(
             f"<tr><td>{format_currency(g['precio'])}</td>"
-            f"<td style='text-align:left'>{g['titulo']}</td></tr>"
+            f"<td style='text-align:left'>{g['titulo']}</td>"
+            f"<td style='text-align:left'>{g['url']}</td></tr>"
             for g in gangas
         )
         gangas_html = f"""
@@ -90,7 +91,7 @@ def build_html(timestamp, stats, gangas) -> str:
         td {{ padding: 6px; border: 1px solid #ddd; text-align: center; }}
         .number {{ font-family: monospace; }}
     </style>
-    <p style="color:#6c757d;">Corrida: {timestamp} &middot; {stats['count']} publicaciones analizadas</p>
+    <p style="color:#6c757d;">Ejecución: {timestamp} &middot; {stats['count']} publicaciones analizadas</p>
     <table>
         <thead><tr><th>Métrica</th><th>Valor (ARS)</th></tr></thead>
         <tbody>{stats_rows}</tbody>

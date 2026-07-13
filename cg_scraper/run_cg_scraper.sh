@@ -1,4 +1,12 @@
 #!/bin/sh
+#
+# run_cg_scraper.sh - Wrapper del scraper de RAM en compragamer.com.
+#
+# Mismo patrón que run_ml_scraper.sh: chequeo de conectividad, corrida del
+# scraper (guarda en SQLite), gráfico histórico y mail. CompraGamer expone
+# API propia, así que no necesita Playwright - más liviano y rápido.
+#
+# Códigos de salida: 0 = OK, 1 = falló (systemd reintenta).
 
 set -eu
 
@@ -61,6 +69,7 @@ check_connectivity() {
     return 1
 }
 
+# --- 1. Conectividad ---
 log "Verificando conectividad..."
 if ! check_connectivity; then
     log "Sin conectividad tras $PING_MAX_ATTEMPTS intentos."
@@ -68,6 +77,7 @@ if ! check_connectivity; then
 fi
 log "Conectividad OK."
 
+# --- 2. Scraper ---
 log "Corriendo scraper de RAM..."
 if ! "$MAIN_DIR/.venv/bin/python3" "$MAIN_DIR/cg_scraper/cg_scraper.py" >"$LOG_DIR/cg_scraper_run.log" 2>&1; then
     log "El scraper falló. Ver $LOG_DIR/cg_scraper_run.log"
@@ -78,10 +88,20 @@ if ! "$MAIN_DIR/.venv/bin/python3" "$MAIN_DIR/cg_scraper/cg_scraper.py" >"$LOG_D
 fi
 log "Scraper OK."
 
-# Nota: graph_data.py / json2html.py del proyecto original quedan a adaptar
-# al nuevo esquema (load_ram_history_df) cuando quieras el mail de RAM
-# igual de completo que el de notebooks - por ahora esta corrida solo
-# persiste en la base.
+# --- 3. Mail ---
+log "Armando y enviando reporte..."
+TEMP_HTML=$(mktemp)
+"$MAIN_DIR/.venv/bin/python3" "$MAIN_DIR/cg_scraper/cg_mail_report.py" "$TEMP_HTML"
 
-log "Corrida de RAM completa."
+{
+    echo "To: $EMAIL_TO"
+    echo "Subject: RAM prices report - $(date +'%Y-%m-%d')"
+    echo "Content-Type: text/html; charset=UTF-8"
+    echo "MIME-Version: 1.0"
+    echo ""
+    cat "$TEMP_HTML"
+} | msmtp -a "$MSMTP_ACCOUNT" "$EMAIL_TO"
+
+rm -f "$TEMP_HTML"
+log "Reporte enviado correctamente."
 exit 0
