@@ -112,6 +112,9 @@ def wrap_email(body_html: str, title: str = "Reporte de Precios - Notebooks Ryze
     <div style="max-width: 650px; margin: 0 auto; background-color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <h2 style="color: #2c3e50; margin-top: 0;">{title}</h2>
         {body_html}
+        <p style="color:#6c757d;">Enlace utilizado: <a href="https://listado.mercadolibre.com.ar/computacion/notebooks-accesorios/notebook_PriceRange_400000ARS-1500000ARS_NoIndex_True_PROCESSOR*LINE_2244215_RAM*MEMORY*MODULE*TOTAL*CAPACITY_16GB-*_SHIPPING*ORIGIN_10215068_SSD*DATA*STORAGE*CAPACITY_400GB-*">
+            mercadolibre.com
+        </a></p>
     </div>
 </body>
 </html>"""

@@ -163,8 +163,7 @@ def parse_listing(page) -> list[Product]:
             or card.query_selector("[class*='title']")
         )
         price_el = (
-            card.query_selector("span.andes-money-amount__fraction")
-            or card.query_selector("[class*='price'] [class*='fraction']")
+            card.query_selector("div.poly-price__current span.andes-money-amount__fraction")
         )
         link_el = card.query_selector("a[href]")
 
