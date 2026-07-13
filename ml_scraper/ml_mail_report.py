@@ -13,7 +13,7 @@ Uso:
 import sys
 import statistics
 
-from db import load_laptop_history_df
+from db.db import load_laptop_history_df
 
 
 def format_currency(value) -> str:

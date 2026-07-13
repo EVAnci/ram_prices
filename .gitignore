@@ -2,3 +2,4 @@
 *.png
 *.log
 env.conf
+__pycache__

@@ -102,9 +102,9 @@ fi
 log "Scraper OK."
 
 # --- 3. Gráfico histórico ---
-log "Generando gráfico histórico..."
-"$MAIN_DIR/.venv/bin/python3" "$MAIN_DIR/ml_scraper/generate_report.py" >>"$LOG_DIR/ml_scraper_run.log" 2>&1 || \
-    log "[WARN] Falló la generación del gráfico, se manda el mail igual sin él."
+# log "Generando gráfico histórico..."
+# "$MAIN_DIR/.venv/bin/python3" "$MAIN_DIR/ml_scraper/generate_report.py" >>"$LOG_DIR/ml_scraper_run.log" 2>&1 || \
+#     log "[WARN] Falló la generación del gráfico, se manda el mail igual sin él."
 
 # --- 4. Reporte por mail ---
 log "Armando y enviando reporte..."
