@@ -79,12 +79,21 @@ def get_cpu_line_id(conn: sqlite3.Connection, marca: str, linea: str) -> Optiona
 
 
 # ----------------------------------------------------------------------------
-# Corridas
+# Ejecuciones
 # ----------------------------------------------------------------------------
 
-def start_run(conn: sqlite3.Connection, provider_nombre: str, timestamp: Optional[datetime] = None) -> int | None:
+def start_run(
+    conn: sqlite3.Connection,
+    provider_nombre: str,
+    timestamp: Optional[datetime] = None
+) -> int | None:
     provider_id = get_provider_id(conn, provider_nombre)
-    ts = (timestamp or datetime.now(timezone.utc)).isoformat()
+
+    dt = timestamp or datetime.now().astimezone()
+    dt = dt.replace(second=0, microsecond=0)
+
+    ts = dt.isoformat(timespec="minutes")
+
     cur = conn.execute(
         "INSERT INTO scrape_runs (provider_id, ejecutado_en) VALUES (?, ?)",
         (provider_id, ts),
