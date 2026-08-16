@@ -104,12 +104,7 @@ if ! "$MAIN_DIR/.venv/bin/python3" "$MAIN_DIR/ml_scraper/ml_scraper.py" >"$LOG_D
 fi
 log "Scraper OK."
 
-# --- 3. Gráfico histórico ---
-# log "Generando gráfico histórico..."
-# "$MAIN_DIR/.venv/bin/python3" "$MAIN_DIR/ml_scraper/generate_report.py" >>"$LOG_DIR/ml_scraper_run.log" 2>&1 || \
-#     log "[WARN] Falló la generación del gráfico, se manda el mail igual sin él."
-
-# --- 4. Reporte por mail ---
+# --- 3. Reporte por mail ---
 log "Armando y enviando reporte..."
 TEMP_HTML=$(mktemp)
 "$MAIN_DIR/.venv/bin/python3" "$MAIN_DIR/ml_scraper/ml_mail_report.py" "$TEMP_HTML"

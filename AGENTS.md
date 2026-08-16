@@ -2,7 +2,6 @@
 
 ## Hardware & Runtime Constraints (Critical)
 - **Target Hardware:** Intel Atom N2600 processor (supports up to SSSE3, lacks SSE4.2).
-- **NumPy Constraint:** `numpy<2.4` is strictly required in `requirements.txt`. NumPy >= 2.4 compiles with mandatory SSE4.2 baseline, which causes an "Illegal instruction" crash on this hardware. Never upgrade numpy to 2.4+.
 
 ## Environment & Setup
 - **Virtual Environment:** `.venv` in project root.

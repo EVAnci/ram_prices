@@ -28,7 +28,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libatspi0 \
     && rm -rf /var/lib/apt/lists/*
 
-# Copiar requirements e instalar dependencias de Python (respetando numpy < 2.4)
+# Copiar requirements e instalar dependencias de Python
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
