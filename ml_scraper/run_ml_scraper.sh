@@ -62,9 +62,12 @@ send_error_mail() {
 
 restart_wifi() {
     log "Reiniciando interfaz $WIFI_INTERFACE..."
-    sudo ip link set "$WIFI_INTERFACE" down
+    sudo -n ip link set "$WIFI_INTERFACE" down
     sleep "$PING_RESTART_DOWN_SECONDS"
-    sudo ip link set "$WIFI_INTERFACE" up
+    sudo -n ip link set "$WIFI_INTERFACE" up
+    if command -v nmcli >/dev/null 2>&1; then
+        sudo -n nmcli device connect "$WIFI_INTERFACE" >/dev/null 2>&1 || true
+    fi
     sleep "$PING_RESTART_UP_SECONDS"
 }
 

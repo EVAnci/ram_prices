@@ -59,6 +59,24 @@ Para comenzar, debe configurar systemd en su sistema operativo. El script `confi
 
 Realizado lo anterior, puede ejecutar `config_env.sh`, el cual creará los timers (análogo a las tareas cron) usando systemd. Con esto, el despliegue automático ya ha quedado configurado. 
 
+## Instrucciones para probar en Docker:
+
+1. Construir la imagen:
+```sh
+docker build -t scraper-test .
+```
+2. Ejecutar el contenedor interactivo:
+```sh
+docker run -it --rm scraper-test
+```
+3. Ejecutar los scrapers dentro del contenedor (previa configuración de env.conf):
+```sh
+cp env.conf.example env.conf
+# Editar env.conf según corresponda
+python3 cg_scraper/cg_scraper.py
+python3 ml_scraper/ml_scraper.py
+```
+
 ## Licencia
 
 Este repositorio está sujeto bajo la licencia MIT.

@@ -1,0 +1,9 @@
+.venv
+*.db
+*.log
+*.png
+env.conf
+__pycache__
+.git
+.github
+systemd_units

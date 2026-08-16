@@ -20,6 +20,48 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 UNITS_SRC_DIR="$SCRIPT_DIR/systemd_units"
 SYSTEMD_DIR="/etc/systemd/system"
 
+ENV_CONF_PATH="${ENV_CONF_PATH:-$SCRIPT_DIR/env.conf}"
+if [ -f "$ENV_CONF_PATH" ]; then
+    set -a
+    . "$ENV_CONF_PATH"
+    set +a
+fi
+
+if [ -n "${SUDO_NET:-}" ]; then
+    echo "== Configurando reglas sudoers en $SUDO_NET =="
+    SCRAPER_USER=""
+    if [ -f "$UNITS_SRC_DIR/cg_scraper.service" ]; then
+        SCRAPER_USER="$(grep -E '^User=' "$UNITS_SRC_DIR/cg_scraper.service" | cut -d= -f2 | tr -d '[:space:]')"
+    fi
+    if [ -z "$SCRAPER_USER" ] && [ -n "${SUDO_USER:-}" ]; then
+        SCRAPER_USER="$SUDO_USER"
+    fi
+    SCRAPER_USER="${SCRAPER_USER:-valen}"
+
+    WIFI_IF="${WIFI_INTERFACE:-wlp2s0}"
+    IP_PATH="$(command -v ip || echo /usr/bin/ip)"
+    NMCLI_PATH="$(command -v nmcli || echo /usr/bin/nmcli)"
+
+    sudoers_content="$SCRAPER_USER ALL=(ALL) NOPASSWD: $IP_PATH link set $WIFI_IF down, $IP_PATH link set $WIFI_IF up"
+    if [ -x "$NMCLI_PATH" ]; then
+        sudoers_content="$sudoers_content, $NMCLI_PATH device connect $WIFI_IF, $NMCLI_PATH device disconnect $WIFI_IF"
+    fi
+
+    echo "$sudoers_content" > "$SUDO_NET"
+    chmod 440 "$SUDO_NET"
+
+    if command -v visudo >/dev/null 2>&1; then
+        if visudo -cf "$SUDO_NET"; then
+            echo "[ok] Regla sudoers validada correctamente en $SUDO_NET"
+        else
+            echo "[error] Error de sintaxis en el archivo sudoers generado." >&2
+            exit 1
+        fi
+    else
+        echo "[ok] Archivo sudoers creado en $SUDO_NET"
+    fi
+fi
+
 UNITS="ml_scraper.service ml_scraper.timer cg_scraper.service cg_scraper.timer"
 
 install_unit() {

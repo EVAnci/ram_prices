@@ -11,6 +11,7 @@ Type=oneshot
 User=valen
 EnvironmentFile=/home/valen/scraper/env.conf
 ExecStart=/bin/sh /home/valen/scraper/ml_scraper/run_ml_scraper.sh
+TimeoutStartSec=10min
 
 Restart=on-failure
 RestartSec=15min
