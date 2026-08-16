@@ -1,5 +1,5 @@
 [Unit]
-Description=Ejecutar el scraper de RAM 3 veces al día
+Description=Ejecutar el scraper de RAM una vez al día
 
 [Timer]
 OnCalendar=*-*-* 17:00:00

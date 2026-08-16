@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PC Scraper — Price Tracker</title>
+  <!-- uPlot CSS & JS -->
+  <link rel="stylesheet" href="https://unpkg.com/uplot/dist/uPlot.min.css">
+  <script src="https://unpkg.com/uplot/dist/uPlot.iife.min.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0a0a0a;
+      color: #e5e5e5;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      letter-spacing: -0.02em;
+      min-height: 100vh;
+    }
+    header {
+      border-bottom: 1px solid #151515;
+      background: rgba(10, 10, 10, 0.9);
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      padding: 14px 20px;
+    }
+    .header-content {
+      max-width: 1120px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 28px;
+      height: 28px;
+      background: #00ff88;
+      color: #000;
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      font-size: 14px;
+      border-radius: 4px;
+    }
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid #1c1c1c;
+      background: #111;
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 11px;
+      color: #aaa;
+    }
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      background: #00ff88;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #00ff88;
+    }
+    main {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 24px 20px;
+    }
+    .controls-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+    .controls-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    select, button {
+      background: #111;
+      border: 1px solid #1e1e1e;
+      color: #e5e5e5;
+      padding: 10px 14px;
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      cursor: pointer;
+    }
+    select:hover, button:hover {
+      border-color: #333;
+    }
+    button.active {
+      background: #1a1a1a;
+      border-color: #00ff88;
+      color: #00ff88;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .stat-card {
+      background: #111;
+      border: 1px solid #1a1a1a;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .stat-label {
+      font-size: 11px;
+      color: #666;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+    .stat-value {
+      font-size: 20px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .chart-container {
+      background: #111;
+      border: 1px solid #1a1a1a;
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .uplot { font-family: inherit !important; }
+    .uplot .u-axis { stroke: #222 !important; }
+    .uplot .u-legend { display: none !important; }
+    .uplot .u-cursor-x, .uplot .u-cursor-y { stroke: #333 !important; }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="header-content">
+      <div class="logo-area">
+        <div class="logo-icon">//</div>
+        <div>
+          <div style="font-weight: 700; font-size: 14px;">PC SCRAPER — PRICE TRACKER</div>
+          <div style="font-size: 10px; color: #666;">Atom N2600 Optimized • uPlot</div>
+        </div>
+      </div>
+      <div class="status-badge">
+        <span class="status-dot"></span>
+        <span>FASTAPI ACTIVO</span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="controls-bar">
+      <div class="controls-group">
+        <select id="productSelect">
+          <option value="">Cargando productos...</option>
+        </select>
+      </div>
+      <div class="controls-group">
+        <button class="range-btn active" data-days="7">7 Días</button>
+        <button class="range-btn" data-days="30">30 Días</button>
+        <button class="range-btn" data-days="all">Histórico</button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Precio Actual (Mediana)</div>
+        <div class="stat-value" id="statCurrent">$0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Mínimo Histórico</div>
+        <div class="stat-value" id="statMin">$0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Variación en Rango</div>
+        <div class="stat-value" id="statVar">0%</div>
+      </div>
+    </div>
+
+    <div class="chart-container">
+      <div id="chart"></div>
+    </div>
+  </main>
+
+  <script>
+    let currentProductId = null;
+    let currentDays = "7";
+    let chartInstance = null;
+
+    async function loadProducts() {
+      try {
+        const res = await fetch('/api/products');
+        const products = await res.json();
+        const select = document.getElementById('productSelect');
+        select.innerHTML = '';
+        if (products.length === 0) {
+          select.innerHTML = '<option value="">No hay productos en la base de datos</option>';
+          return;
+        }
+        products.forEach((p, idx) => {
+          const opt = document.createElement('option');
+          opt.value = p.id;
+          opt.textContent = p.name;
+          select.appendChild(opt);
+        });
+        currentProductId = products[0].id;
+        fetchAndRender();
+      } catch (err) {
+        console.error('Error cargando productos:', err);
+      }
+    }
+
+    async function fetchAndRender() {
+      if (!currentProductId) return;
+      try {
+        const res = await fetch(`/api/prices?product_id=${currentProductId}&days=${currentDays}`);
+        const json = await res.json();
+        
+        document.getElementById('statCurrent').textContent = `$${json.stats.current.toLocaleString('es-AR')}`;
+        document.getElementById('statMin').textContent = `$${json.stats.min_historic.toLocaleString('es-AR')}`;
+        const varEl = document.getElementById('statVar');
+        varEl.textContent = `${json.stats.var > 0 ? '+' : ''}${json.stats.var}%`;
+        varEl.style.color = json.stats.var < 0 ? '#00ff88' : (json.stats.var > 0 ? '#ff5555' : '#e5e5e5');
+
+        renderChart(json.data);
+      } catch (err) {
+        console.error('Error cargando precios:', err);
+      }
+    }
+
+    function renderChart(dataPoints) {
+      const chartDiv = document.getElementById('chart');
+      chartDiv.innerHTML = '';
+
+      if (!dataPoints || dataPoints.length === 0) {
+        chartDiv.innerHTML = '<div style="text-align:center;padding:40px;color:#666">No hay datos suficientes para el rango seleccionado</div>';
+        return;
+      }
+
+      const timestamps = dataPoints.map(d => d.timestamp);
+      const means = dataPoints.map(d => d.mean);
+      const stdUps = dataPoints.map(d => d.mean + d.std);
+      const stdDowns = dataPoints.map(d => d.mean - d.std);
+      const mins = dataPoints.map(d => d.min);
+      const maxs = dataPoints.map(d => d.max);
+
+      const data = [
+        timestamps,
+        means,
+        stdUps,
+        stdDowns,
+        mins,
+        maxs
+      ];
+
+      const opts = {
+        width: chartDiv.clientWidth || 1040,
+        height: 380,
+        series: [
+          {},
+          {
+            label: "Mediana",
+            stroke: "#00ff88",
+            width: 2,
+            points: { show: true, size: 4 }
+          },
+          {
+            label: "Std Up",
+            stroke: "rgba(0,255,136,0)",
+            fill: "rgba(0,255,136,0.1)",
+            width: 0,
+            points: { show: false },
+            band: true
+          },
+          {
+            label: "Std Down",
+            stroke: "rgba(0,255,136,0)",
+            width: 0,
+            points: { show: false }
+          },
+          {
+            label: "Mínimo",
+            stroke: "#555",
+            width: 1,
+            dash: [4, 4],
+            points: { show: false }
+          },
+          {
+            label: "Máximo",
+            stroke: "#555",
+            width: 1,
+            dash: [4, 4],
+            points: { show: false }
+          }
+        ],
+        axes: [
+          {
+            stroke: '#444',
+            grid: { stroke: '#1a1a1a' },
+            ticks: { stroke: '#333' }
+          },
+          {
+            stroke: '#444',
+            grid: { stroke: '#1a1a1a' },
+            ticks: { stroke: '#333' },
+            values: (u, vals) => vals.map(v => `$${v.toLocaleString('es-AR')}`)
+          }
+        ],
+        cursor: {
+          drag: { setScale: false }
+        }
+      };
+
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+      chartInstance = new uPlot(opts, data, chartDiv);
+    }
+
+    document.getElementById('productSelect').addEventListener('change', (e) => {
+      currentProductId = e.target.value;
+      fetchAndRender();
+    });
+
+    document.querySelectorAll('.range-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.range-btn').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        currentDays = e.target.getAttribute('data-days');
+        fetchAndRender();
+      });
+    });
+
+    window.addEventListener('resize', () => {
+      if (chartInstance) {
+        const chartDiv = document.getElementById('chart');
+        chartInstance.setSize({ width: chartDiv.clientWidth || 1040, height: 380 });
+      }
+    });
+
+    loadProducts();
+  </script>
+</body>
+</html>

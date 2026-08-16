@@ -1,0 +1,16 @@
+[Unit]
+Description=PC Scraper Frontend & API (FastAPI + uPlot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=valen
+WorkingDirectory=/home/valen/scraper/frontend
+ExecStart=/home/valen/scraper/.venv/bin/uvicorn main:app --host 0.0.0.0 --port 80 --workers 1
+Restart=always
+RestartSec=10
+MemoryMax=100M
+
+[Install]
+WantedBy=multi-user.target
