@@ -3,3 +3,4 @@
 *.log
 env.conf
 __pycache__
+scraper.db

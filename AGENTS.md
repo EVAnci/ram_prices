@@ -1,20 +1,31 @@
 # AGENTS.md
 
-## Hardware & Runtime Constraints (Critical)
-- **Target Hardware:** Intel Atom N2600 processor (supports up to SSSE3, lacks SSE4.2).
+## Project execution
+
+- The real environment is in a LAN server. This project is the development spaces so db, scrapers and services are not running in this machine.
+
+## Hardware & Runtime
+- **CPU Constraint:** Intel Atom N2600 (SSSE3 only, no SSE4.2). Avoid libraries requiring modern CPU extensions.
 
 ## Environment & Setup
-- **Virtual Environment:** `.venv` in project root.
-- **Setup Script:** `./setup_py_env.sh` (creates venv, installs dependencies from `requirements.txt`, installs Playwright firefox).
-- **Configuration:** Copy `env.conf.example` to `env.conf`.
+- **Venv:** `.venv` in project root.
+- **Install:** `./setup_py_env.sh` (installs deps + Playwright firefox).
+- **Config:** Copy `env.conf.example` to `env.conf`.
 
 ## Architecture & Entrypoints
-- **Python Path:** `PYTHONPATH` must include the project root (`$MAIN_DIR`) so shared modules (`db`, etc.) resolve correctly.
-- **CompraGamer Scraper:** `cg_scraper/cg_scraper.py` (uses `requests` for the CG API). Wrapper: `cg_scraper/run_cg_scraper.sh`.
-- **MercadoLibre Scraper:** `ml_scraper/ml_scraper.py` (uses Playwright with Firefox). Wrapper: `ml_scraper/run_ml_scraper.sh`.
-- **Database:** SQLite DB managed via `db/db.py` following schema `db/schema.sql`.
+- **Python Path:** Must run from project root to resolve imports (`PYTHONPATH` set internally or externally).
+- **Scrapers:**
+  - **CompraGamer:** `cg_scraper/run_cg_scraper.sh` (uses `requests`).
+  - **MercadoLibre:** `ml_scraper/run_ml_scraper.sh` (uses Playwright).
+- **Database:** SQLite (`db/scraper.db`), schema in `db/schema.sql`.
 
-## Systemd Automation
-- **Units:** Located in `systemd_units/` (`cg_scraper.service/.timer`, `ml_scraper.service/.timer`).
-- **Deployment:** Run `sudo ./conf_env.sh` to install units, enable timers, and automatically generate the NOPASSWD sudoers file defined by `SUDO_NET` in `env.conf`.
-- **Resilience:** Wrappers use `sudo -n` for non-interactive `ip link` / `nmcli` network resets. Services include `TimeoutStartSec=10min` and `Restart=on-failure` to prevent infinite hangs in `activating` state.
+## Frontend
+- **Server:** `frontend/main.py` (FastAPI).
+- **Service:** `systemd_units/frontend.service` handles deployment.
+- **Product ID Logic:** `ram_ddr<X>_<cap>gb` or `laptop_<marca>_<linea>`.
+- **Case Sensitivity:** `cpu_line.marca` in DB is `UPPERCASE`. When querying by brand from `product_id`, ensure `Intel` / `AMD` format (e.g., `parts[0].capitalize() if parts[0] == 'intel' else parts[0].upper()`).
+
+## Systemd
+- **Units:** `systemd_units/` (*.service, *.timer).
+- **Deploy:** `sudo ./conf_env.sh` (installs units, enables timers, generates NOPASSWD sudoers).
+- **Resilience:** Wrappers use `sudo -n` for non-interactive network resets. Services have `Restart=on-failure` and `TimeoutStartSec=10min`.

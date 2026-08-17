@@ -4,7 +4,12 @@ import statistics
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from fastapi import FastAPI, Query
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+
+import config
+
+config.load()  # completa os.environ desde env.conf
 
 app = FastAPI(title="PC Scraper API")
 
@@ -17,6 +22,12 @@ def get_db():
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
+
+@app.get("/api/download-db")
+def download_db():
+    if not DB_PATH.exists():
+        return {"error": "Database file not found"}
+    return FileResponse(path=str(DB_PATH), filename="scraper.db", media_type="application/x-sqlite3")
 
 @app.get("/api/products")
 def get_products():
@@ -82,7 +93,7 @@ def get_prices(product_id: str = Query(...), days: str = Query("30")):
         elif product_id.startswith("laptop_"):
             parts = product_id.replace("laptop_", "").split("_", 1)
             if len(parts) == 2:
-                marca = parts[0].capitalize()
+                marca = parts[0].capitalize() if parts[0] == 'intel' else parts[0].upper()
                 linea_slug = parts[1]
                 laptop_rows = conn.execute("""
                     SELECT r.ejecutado_en AS timestamp, l.precio, cl.linea

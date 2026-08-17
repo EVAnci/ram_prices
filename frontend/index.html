@@ -160,6 +160,9 @@
   <main>
     <div class="controls-bar">
       <div class="controls-group">
+        <button onclick="window.location.href='/api/download-db'">Descargar DB</button>
+      </div>
+      <div class="controls-group">
         <select id="productSelect">
           <option value="">Cargando productos...</option>
         </select>
@@ -309,6 +312,7 @@
             ticks: { stroke: '#333' }
           },
           {
+            size: 80,
             stroke: '#444',
             grid: { stroke: '#1a1a1a' },
             ticks: { stroke: '#333' },
