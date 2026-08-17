@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>PC Scraper — Price Tracker</title>
   <!-- uPlot CSS & JS -->
-  <link rel="stylesheet" href="https://unpkg.com/uplot/dist/uPlot.min.css">
-  <script src="https://unpkg.com/uplot/dist/uPlot.iife.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/uplot@1.6.32/dist/uPlot.min.css">
+  <script src="https://unpkg.com/uplot@1.6.32/dist/uPlot.iife.min.js"></script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -133,6 +133,20 @@
       border: 1px solid #1a1a1a;
       border-radius: 12px;
       padding: 20px;
+      position: relative;
+    }
+    #tooltip {
+      position: absolute;
+      display: none;
+      background: #1a1a1a;
+      border: 1px solid #333;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #fff;
+      pointer-events: none;
+      z-index: 100;
+      white-space: nowrap;
     }
     .uplot { font-family: inherit !important; }
     .uplot .u-axis { stroke: #222 !important; }
@@ -191,6 +205,7 @@
 
     <div class="chart-container">
       <div id="chart"></div>
+      <div id="tooltip"></div>
     </div>
   </main>
 
@@ -265,6 +280,8 @@
         maxs
       ];
 
+      const tooltip = document.getElementById('tooltip');
+
       const opts = {
         width: chartDiv.clientWidth || 1040,
         height: 380,
@@ -279,10 +296,8 @@
           {
             label: "Std Up",
             stroke: "rgba(0,255,136,0)",
-            fill: "rgba(0,255,136,0.1)",
             width: 0,
-            points: { show: false },
-            band: true
+            points: { show: false }
           },
           {
             label: "Std Down",
@@ -305,6 +320,9 @@
             points: { show: false }
           }
         ],
+        bands: [
+          { series: [2, 3], dir: -1, fill: "rgba(0,255,136,0.1)" }
+        ],
         axes: [
           {
             stroke: '#444',
@@ -321,6 +339,37 @@
         ],
         cursor: {
           drag: { setScale: false }
+        },
+        hooks: {
+          setCursor: [
+            u => {
+              const { left, top, idx } = u.cursor;
+              if (idx == null) {
+                tooltip.style.display = 'none';
+                return;
+              }
+              const d = dataPoints[idx];
+              const date = new Date(d.timestamp * 1000).toLocaleString('es-AR');
+              tooltip.innerHTML = `
+                <div style="font-weight:600; margin-bottom:4px;">${date}</div>
+                <div>Máximo: $${d.max.toLocaleString('es-AR')}</div>
+                <div>Mínimo: $${d.min.toLocaleString('es-AR')}</div>
+                <div>Mediana: $${d.mean.toLocaleString('es-AR')}</div>
+                <div>Desv. Est: ${d.std.toLocaleString('es-AR')}</div>
+              `;
+              tooltip.style.display = 'block';
+              
+              const px = u.pxRatio;
+              let x = (u.bbox.left / px) + left + 12;
+              let y = (u.bbox.top / px) + top + 12;
+
+              // Clamp
+              if (x + tooltip.offsetWidth > chartDiv.clientWidth) x = (u.bbox.left / px) + left - tooltip.offsetWidth - 12;
+              
+              tooltip.style.left = x + 'px';
+              tooltip.style.top = y + 'px';
+            }
+          ]
         }
       };
 
