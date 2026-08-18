@@ -14,37 +14,37 @@ Uso:
 import sys
 import statistics
 
-from db.db import load_ram_history_df
+from db.db import load_ram_history
 
 
 def format_currency(value) -> str:
     return f"${int(value):,}".replace(",", ".")
 
 
-def compute_last_run_stats_ram(df):
+def compute_last_run_stats_ram(data):
     """
     Devuelve (timestamp, {"DDR4 8GB": {"stats": {...}, "gangas": [...]}, ...}).
-
-    Agrupa por (ddr, capacidad_gb) ANTES de calcular cuartiles/IQR, así el
-    límite de "ganga" de cada categoría se calcula contra su propia
-    distribución de precios, no contra el resto de las categorías.
     """
-    if df.empty:
+    if not data:
         return None, {}
 
-    last_ts = df["timestamp"].max()
-    last_run = df[df["timestamp"] == last_ts].dropna(subset=["ddr", "capacidad_gb"])
+    last_ts = max(item["timestamp"] for item in data)
+    last_run = [
+        item for item in data 
+        if item["timestamp"] == last_ts and item.get("ddr") is not None and item.get("capacidad_gb") is not None
+    ]
 
     grupos = {}
-    # sort_values asegura un orden estable y prolijo en el mail (DDR4 8, DDR4 16, DDR5 16...)
-    claves = last_run[["ddr", "capacidad_gb"]].drop_duplicates().sort_values(["ddr", "capacidad_gb"])
+    keys = sorted(
+        list({(item["ddr"], item["capacidad_gb"]) for item in last_run}),
+        key=lambda x: (x[0], x[1])
+    )
 
-    for _, row in claves.iterrows():
-        ddr, capacidad = row["ddr"], row["capacidad_gb"]
+    for ddr, capacidad in keys:
         label = f"DDR{int(ddr)} {int(capacidad)}GB"
 
-        subset = last_run[(last_run["ddr"] == ddr) & (last_run["capacidad_gb"] == capacidad)]
-        prices = sorted(subset["precio"].tolist())
+        subset = [item for item in last_run if item["ddr"] == ddr and item["capacidad_gb"] == capacidad]
+        prices = sorted([item["precio"] for item in subset])
         n = len(prices)
         if n == 0:
             continue
@@ -64,11 +64,7 @@ def compute_last_run_stats_ram(df):
             q3 = statistics.quantiles(prices, n=4)[2]
             iqr = q3 - q1
             lower_bound = q1 - 1.5 * iqr
-            gangas = (
-                subset[subset["precio"] < lower_bound]
-                .sort_values("precio")
-                .to_dict("records")
-            )
+            gangas = sorted([item for item in subset if item["precio"] < lower_bound], key=lambda x: x["precio"])
 
         grupos[label] = {"stats": stats, "gangas": gangas}
 
@@ -153,8 +149,8 @@ def wrap_email(body_html: str, title: str = "Reporte de Precios - Memoria RAM") 
 
 
 def main():
-    df = load_ram_history_df()
-    timestamp, grupos = compute_last_run_stats_ram(df)
+    data = load_ram_history()
+    timestamp, grupos = compute_last_run_stats_ram(data)
     body = build_html(timestamp, grupos)
     full_html = wrap_email(body)
 

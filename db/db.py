@@ -29,6 +29,7 @@ SCHEMA_PATH = Path(__file__).parent / "schema.sql"
 def get_connection() -> sqlite3.Connection:
     conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.row_factory = sqlite3.Row
     return conn
 
 
@@ -192,11 +193,9 @@ def save_ram_listings(run_id: int, items: list) -> int:
 # Consultas para reportes
 # ----------------------------------------------------------------------------
 
-def load_laptop_history_df():
-    import pandas as pd
-
+def load_laptop_history():
     with get_connection() as conn:
-        df = pd.read_sql(
+        cursor = conn.execute(
             """
             SELECT
                 r.ejecutado_en AS timestamp,
@@ -217,18 +216,14 @@ def load_laptop_history_df():
             LEFT JOIN cpu_line cl ON lp.cpu_line_id = cl.id
             WHERE l.product_type_id = (SELECT id FROM product_types WHERE slug = 'laptop')
             ORDER BY r.ejecutado_en
-            """,
-            conn,
-            parse_dates=["timestamp"],
+            """
         )
-    return df
+        return [dict(row) for row in cursor.fetchall()]
 
 
-def load_ram_history_df():
-    import pandas as pd
-
+def load_ram_history():
     with get_connection() as conn:
-        df = pd.read_sql(
+        cursor = conn.execute(
             """
             SELECT
                 r.ejecutado_en AS timestamp,
@@ -245,11 +240,9 @@ def load_ram_history_df():
             JOIN ram rm ON rm.listing_id = l.id
             WHERE l.product_type_id = (SELECT id FROM product_types WHERE slug = 'ram')
             ORDER BY r.ejecutado_en
-            """,
-            conn,
-            parse_dates=["timestamp"],
+            """
         )
-    return df
+        return [dict(row) for row in cursor.fetchall()]
 
 
 if __name__ == "__main__":

@@ -13,20 +13,20 @@ Uso:
 import sys
 import statistics
 
-from db.db import load_laptop_history_df
+from db.db import load_laptop_history
 
 
 def format_currency(value) -> str:
     return f"${int(value):,}".replace(",", ".")
 
 
-def compute_last_run_stats(df):
-    if df.empty:
+def compute_last_run_stats(data):
+    if not data:
         return None, None, []
 
-    last_ts = df["timestamp"].max()
-    last_run = df[df["timestamp"] == last_ts]
-    prices = sorted(last_run["precio"].tolist())
+    last_ts = max(item["timestamp"] for item in data)
+    last_run = [item for item in data if item["timestamp"] == last_ts]
+    prices = sorted([item["precio"] for item in last_run])
     n = len(prices)
 
     stats = {
@@ -44,11 +44,7 @@ def compute_last_run_stats(df):
         q3 = statistics.quantiles(prices, n=4)[2]
         iqr = q3 - q1
         lower_bound = q1 - 1.5 * iqr
-        gangas = (
-            last_run[last_run["precio"] < lower_bound]
-            .sort_values("precio")
-            .to_dict("records")
-        )
+        gangas = sorted([item for item in last_run if item["precio"] < lower_bound], key=lambda x: x["precio"])
 
     return last_ts, stats, gangas
 
@@ -121,8 +117,8 @@ def wrap_email(body_html: str, title: str = "Reporte de Precios - Notebooks Ryze
 
 
 def main():
-    df = load_laptop_history_df()
-    timestamp, stats, gangas = compute_last_run_stats(df)
+    data = load_laptop_history()
+    timestamp, stats, gangas = compute_last_run_stats(data)
     body = build_html(timestamp, stats, gangas)
     full_html = wrap_email(body)
 
